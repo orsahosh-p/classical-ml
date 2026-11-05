@@ -1,0 +1,53 @@
+#!/bin/bash
+set -euo pipefail
+
+# Resolve symlinks so an installed command can find the project sources.
+script_path="${BASH_SOURCE[0]}"
+while [[ -L "$script_path" ]]; do
+    script_dir="$(cd -P "$(dirname "$script_path")" && pwd)"
+    link_target="$(readlink "$script_path")"
+    case "$link_target" in
+        /*) script_path="$link_target" ;;
+        *) script_path="$script_dir/$link_target" ;;
+    esac
+done
+project_dir="$(cd -P "$(dirname "$script_path")" && pwd)"
+build_dir="$(mktemp -d "${TMPDIR:-/tmp}/mltest.XXXXXX")"
+trap 'rm -rf "$build_dir"' EXIT
+
+sources=()
+while IFS= read -r -d '' source; do
+    # Ignore the empty placeholders for algorithms not yet implemented.
+    [[ ! -s "$source" ]] || sources+=("$source")
+done < <(find "$project_dir/src" -type f -name '*.c' -print0)
+
+tests=()
+while IFS= read -r -d '' test_file; do
+    tests+=("$test_file")
+done < <(find "$project_dir/tests" -type f -name 'test_*.c' -print0)
+
+if [[ ${#sources[@]} -eq 0 || ${#tests[@]} -eq 0 ]]; then
+    echo "ERROR: No implementation sources or tests found." >&2
+    exit 1
+fi
+
+passed=0
+failed=0
+for test_file in "${tests[@]}"; do
+    test_name="${test_file#"$project_dir/tests/"}"
+    executable="$build_dir/test-$((passed + failed))"
+    printf '\n==> %s\n' "$test_name"
+    if ! "${CC:-cc}" -std=c17 -Wall -Wextra -Wpedantic -Werror \
+        -I"$project_dir/include" "$test_file" "${sources[@]}" -lm -o "$executable"; then
+        echo "FAIL: compilation"
+        failed=$((failed + 1))
+    elif "$executable"; then
+        passed=$((passed + 1))
+    else
+        echo "FAIL: test execution"
+        failed=$((failed + 1))
+    fi
+done
+
+printf '\nResults: %d passed, %d failed.\n' "$passed" "$failed"
+[[ "$failed" -eq 0 ]]

@@ -17,7 +17,7 @@ void linear_regression_fit(
         return;
     }
 
-    if(n <= 0 || learning_rate <= 0 || epochs <= 0){
+    if(n == 0 || learning_rate <= 0.0 || epochs == 0){
         return;
     }
 

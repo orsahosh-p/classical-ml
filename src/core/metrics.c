@@ -24,3 +24,24 @@ double mean_squared_error(
 
     return error;
 }
+
+double accuracy_score(
+    const int *actual,
+    const int *predicted,
+    size_t n
+){
+
+    if(actual == NULL || predicted == NULL || n == 0){
+        return NAN;
+    }
+
+    size_t count = 0;
+
+    for(size_t i = 0; i < n; i++){
+        if(actual[i] == predicted[i]){
+            count++;
+        }
+    }
+
+    return (double)count / n;
+}
