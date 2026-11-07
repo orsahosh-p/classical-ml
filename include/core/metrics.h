@@ -18,4 +18,16 @@ double accuracy_score(
     size_t n
 );
 
+/* Mean binary cross-entropy (natural logarithm).
+ * Labels must be 0.0 or 1.0; probabilities must be finite and in [0, 1].
+ * Return NAN for invalid inputs, NULL pointers, or n == 0.
+ * A confidently wrong probability (0 for label 1, or 1 for label 0)
+ * produces positive infinity; perfect predictions produce zero.
+ */
+double binary_cross_entropy(
+    const double *actual,
+    const double *probabilities,
+    size_t n
+);
+
 #endif
